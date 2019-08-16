@@ -40,6 +40,7 @@ const pullConfig = async () => {
   `
   );
 
+  let functionNames: Array<string> = [];
   data.data.forEach(categories => {
     categories.list.forEach(apiItem => {
       const {
@@ -53,9 +54,10 @@ const pullConfig = async () => {
       if (method == 'GET') {
         let functionString = '';
 
-        let tempUrl = path.slice(0, path.indexOf('{'));
+        let url =
+          path.indexOf('{') === -1 ? path : path.slice(0, path.indexOf('{'));
 
-        let functionName = getFunctionName(tempUrl);
+        let functionName = getFunctionName(url);
 
         let requestFields = req_query.map(v => {
           `${v.name}${v.required == '1' ? '?' : ''} : string;`;
@@ -86,27 +88,33 @@ const pullConfig = async () => {
           req_query.length > 0 ? `params?: types.${requestInterfaceName}` : '';
 
         if (req_params.length > 0) {
-          functionString = `export const ${functionName} = async (${
+          functionString = `export const ${functionName}By${firstLetterToUpperCase(
             req_params[0].name
-          }: string, ${paramsString}) :Promise<${
+          )} = async (${
+            req_params[0].name
+          }: string, ${paramsString}) :Promise<{res: ${
             responsInterfaceName == 'any'
               ? 'any'
               : 'types.' + responsInterfaceName
-          }>  => {
-            return await PantherSdk.get({ url: \`${tempUrl}\$\{${
+          }, err: Error | null}>  => {
+            return await PantherSdk.get({ url: \`${url}\$\{${
             req_params[0].name
           }\}\`, ${req_query.length > 0 ? 'params' : ''} });
           };`;
+          functionNames.push(
+            `${functionName}By${firstLetterToUpperCase(req_params[0].name)}`
+          );
         } else {
-          functionString = `export const ${functionName} = async (${paramsString}) : Promise<${
+          functionString = `export const ${functionName} = async (${paramsString}) : Promise<{res:${
             responsInterfaceName == 'any'
               ? 'any'
               : 'types.' + responsInterfaceName
-          }> => {
+          }, err: Error | null}> => {
             return await PantherSdk.get({ url: '${path}', ${
             req_query.length > 0 ? 'params' : ''
           } });
           };`;
+          functionNames.push(`${functionName}`);
         }
 
         // console.log('requestInterfaceString...', requestInterfaceString);
@@ -119,8 +127,9 @@ const pullConfig = async () => {
       }
 
       if (method == 'POST') {
-        let tempUrl = path.slice(0, path.indexOf('{'));
-        let functionName = getFunctionName(tempUrl);
+        let url =
+          path.indexOf('{') === -1 ? path : path.slice(0, path.indexOf('{'));
+        let functionName = getFunctionName(url);
 
         let requestInterfaceName =
           functionName.replace(/^\S/, s => s.toUpperCase()) + 'Request';
@@ -152,29 +161,36 @@ const pullConfig = async () => {
             responsInterfaceName
           );
         }
+        console.log('functionName...', functionName, '| url...', url);
 
         //
         let functionString = '';
         if (req_params.length > 0) {
-          functionString = `export const ${functionName} = async (${
+          functionString = `export const ${functionName}By${firstLetterToUpperCase(
             req_params[0].name
-          }: string, data: types.${requestInterfaceName}) :Promise<${
+          )} = async (${
+            req_params[0].name
+          }: string, data: types.${requestInterfaceName}) :Promise<{res: ${
             responsInterfaceName == 'any'
               ? 'any'
               : 'types.' + responsInterfaceName
-          }>  => {
-            return await PantherSdk.post({ url: \`${tempUrl}\$\{${
+          }, err: Error | null}>  => {
+            return await PantherSdk.post({ url: \`${url}\$\{${
             req_params[0].name
           }\}\`, data });
           };`;
+          functionNames.push(
+            `${functionName}By${firstLetterToUpperCase(req_params[0].name)}`
+          );
         } else {
-          functionString = `export const ${functionName} = async (data: types.${requestInterfaceName}) : Promise<${
+          functionString = `export const ${functionName} = async (data: types.${requestInterfaceName}) : Promise<{res: ${
             responsInterfaceName == 'any'
               ? 'any'
               : 'types.' + responsInterfaceName
-          }> => {
-            return await PantherSdk.post({ url: '${path}', data });
+          }, err: Error | null}> => {
+            return await PantherSdk.post({ url: '${url}', data });
           };`;
+          functionNames.push(`${functionName}`);
         }
 
         fs.appendFileSync('./api/types/index.ts', requestInterfaceString);
@@ -183,6 +199,18 @@ const pullConfig = async () => {
       }
     });
   });
+
+  fs.appendFileSync(
+    './api/index.ts',
+    `export default {
+    ${functionNames.join(',')}
+  }`
+  );
+};
+
+const firstLetterToUpperCase = (string: string) => {
+  let result = string;
+  return result.replace(/^\S/, s => s.toUpperCase());
 };
 
 const getFunctionName = (url: string) => {

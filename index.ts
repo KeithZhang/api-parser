@@ -86,7 +86,7 @@ const pullConfig = async () => {
           req_query.length > 0 ? `params?: types.${requestInterfaceName}` : '';
 
         if (req_params.length > 0) {
-          functionString = `const ${functionName} = async (${
+          functionString = `export const ${functionName} = async (${
             req_params[0].name
           }: string, ${paramsString}) :Promise<${
             responsInterfaceName == 'any'
@@ -98,7 +98,7 @@ const pullConfig = async () => {
           }\}\`, ${req_query.length > 0 ? 'params' : ''} });
           };`;
         } else {
-          functionString = `const ${functionName} = async (${paramsString}) : Promise<${
+          functionString = `export const ${functionName} = async (${paramsString}) : Promise<${
             responsInterfaceName == 'any'
               ? 'any'
               : 'types.' + responsInterfaceName
@@ -156,7 +156,7 @@ const pullConfig = async () => {
         //
         let functionString = '';
         if (req_params.length > 0) {
-          functionString = `const ${functionName} = async (${
+          functionString = `export const ${functionName} = async (${
             req_params[0].name
           }: string, data: types.${requestInterfaceName}) :Promise<${
             responsInterfaceName == 'any'
@@ -168,7 +168,7 @@ const pullConfig = async () => {
           }\}\`, data });
           };`;
         } else {
-          functionString = `const ${functionName} = async (data: types.${requestInterfaceName}) : Promise<${
+          functionString = `export const ${functionName} = async (data: types.${requestInterfaceName}) : Promise<${
             responsInterfaceName == 'any'
               ? 'any'
               : 'types.' + responsInterfaceName

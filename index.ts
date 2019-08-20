@@ -20,7 +20,7 @@ const pullConfig = async () => {
       }>;
     }>;
   } = await axios.get(
-    'http://121.199.199.140/api/open/plugin/export-full?type=json&pid=11&status=all&token=f4c2a58521a19433f4ac08fbf5835557fb1cf12d63fd0730fe4ff2b395e2b638'
+    'http://yapi.jushewang.com/api/open/plugin/export-full?type=json&pid=11&status=all&token=f4c2a58521a19433f4ac08fbf5835557fb1cf12d63fd0730fe4ff2b395e2b638'
   );
   console.log('data...', data);
 
@@ -225,31 +225,39 @@ const getFunctionName = (url: string) => {
 };
 
 const getInterfaceTree = (obj: any, interfaceName: string) => {
-  let interfaces: Array<string> = [];
-  const loop = (obj: any, interfaceName: string) => {
-    let fileds = [] as any;
+  const loop = (obj: any) => {
     if (obj.type === 'object') {
+      let fileds = [] as any;
       Object.keys(obj.properties).map(v => {
-        if (obj.properties[v].type === 'string') {
-          fileds.push(`${v}: string;`);
-        } else if (obj.properties[v].type === 'number') {
-          fileds.push(`${v}: number;`);
-        } else if (obj.properties[v].type === 'object') {
-          let childInterfaceName = v.replace(/^\S/, s => s.toUpperCase());
-          fileds.push(`${v}: ${childInterfaceName};`);
-          loop(obj.properties[v], childInterfaceName);
-        }
+        const required =
+          obj.required && obj.required.indexOf(v) !== -1 ? '' : '?';
+        let result = loop(obj.properties[v]);
+        fileds.push(`${v}${required}: ${result};`);
       });
 
-      let interfaceString = `export interface ${interfaceName} {
+      return `{
         ${fileds.join('')}
       }`;
-      interfaces.push(interfaceString);
+    } else if (obj.type === 'string') {
+      return 'string';
+    } else if (obj.type === 'boolean') {
+      return 'boolean';
+    } else if (obj.type === 'number') {
+      return 'number';
+    } else if (obj.type === 'array') {
+      let resultInterfaceName: any = loop(obj.items);
+      return `Array<${resultInterfaceName}>`;
     }
   };
-  loop(obj, interfaceName);
-  return interfaces.join('');
+
+  let rootObj = loop(obj);
+  let interfaceString = `export interface ${interfaceName} ${rootObj}`;
+  return interfaceString;
 };
+
+interface Root {
+  content: Array<string>;
+}
 
 // const login = async (data?: any) => {
 //   return await PantherSdk.post({ url: '/shop/login', data });

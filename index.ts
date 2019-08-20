@@ -232,32 +232,47 @@ const getInterfaceTree = (obj: any, interfaceName: string) => {
         const required =
           obj.required && obj.required.indexOf(v) !== -1 ? '' : '?';
         let result = loop(obj.properties[v]);
-        fileds.push(`${v}${required}: ${result};`);
+
+        // 基础类型加注释
+        if (result.type === 'string') {
+          fileds.push(`
+            // ${result.description}
+            ${v}${required}: ${result.type};
+          `);
+        } else if (result.type === 'boolean') {
+          fileds.push(`
+            // ${result.description}
+            ${v}${required}: ${result.type};
+          `);
+        } else if (result.type === 'number') {
+          fileds.push(`
+            // ${result.description}
+            ${v}${required}: ${result.type};
+          `);
+        } else {
+          fileds.push(`
+            ${v}${required}: ${result.type};
+          `);
+        }
       });
 
-      return `{
-        ${fileds.join('')}
-      }`;
-    } else if (obj.type === 'string') {
-      return 'string';
-    } else if (obj.type === 'boolean') {
-      return 'boolean';
-    } else if (obj.type === 'number') {
-      return 'number';
+      return {
+        type: `{
+          ${fileds.join('')}
+        }`
+      };
     } else if (obj.type === 'array') {
       let resultInterfaceName: any = loop(obj.items);
-      return `Array<${resultInterfaceName}>`;
+      return { type: `Array<${resultInterfaceName.type}>` };
+    } else {
+      return obj;
     }
   };
 
   let rootObj = loop(obj);
-  let interfaceString = `export interface ${interfaceName} ${rootObj}`;
+  let interfaceString = `export interface ${interfaceName} ${rootObj.type}`;
   return interfaceString;
 };
-
-interface Root {
-  content: Array<string>;
-}
 
 // const login = async (data?: any) => {
 //   return await PantherSdk.post({ url: '/shop/login', data });

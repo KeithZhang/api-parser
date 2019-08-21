@@ -1,6 +1,8 @@
 import axios from 'axios';
 import fs from 'fs';
 
+const baseDir = '/Users/keith/project/biz/jushe/panther-weapp/src/api';
+
 const pullConfig = async () => {
   const data: {
     data: Array<{
@@ -24,16 +26,17 @@ const pullConfig = async () => {
   );
   console.log('data...', data);
 
-  if (fs.existsSync('./api')) {
-    fs.existsSync('./api/index.ts') && fs.unlinkSync('./api/index.ts');
-    fs.existsSync('./api/types/index.ts') &&
-      fs.unlinkSync('./api/types/index.ts');
+  if (fs.existsSync(baseDir)) {
+    fs.existsSync(`${baseDir}/index.ts`) &&
+      fs.unlinkSync(`${baseDir}/index.ts`);
+    fs.existsSync(`${baseDir}/types/index.ts`) &&
+      fs.unlinkSync(`${baseDir}/types/index.ts`);
   } else {
-    fs.mkdirSync('./api/types', { recursive: true });
+    fs.mkdirSync(`${baseDir}/types`, { recursive: true });
   }
 
   fs.appendFileSync(
-    './api/index.ts',
+    `${baseDir}/index.ts`,
     `
   import { PantherSdk } from 'panther-kit';
   import * as types from './types';
@@ -54,6 +57,7 @@ const pullConfig = async () => {
       if (method == 'GET') {
         let functionString = '';
 
+        let detail = path.indexOf('{') === -1 ? '' : 'Detail';
         let url =
           path.indexOf('{') === -1 ? path : path.slice(0, path.indexOf('{'));
 
@@ -63,7 +67,9 @@ const pullConfig = async () => {
           `${v.name}${v.required == '1' ? '?' : ''} : string;`;
         });
         let requestInterfaceName =
-          functionName.replace(/^\S/, s => s.toUpperCase()) + 'QueryRequest';
+          functionName.replace(/^\S/, s => s.toUpperCase()) +
+          detail +
+          'GetRequest';
 
         let requestInterfaceString = `export interface ${requestInterfaceName}  {
               ${requestFields.join('')}
@@ -71,7 +77,9 @@ const pullConfig = async () => {
 
         let responsInterfaceString = '';
         let responsInterfaceName =
-          functionName.replace(/^\S/, s => s.toUpperCase()) + 'Response';
+          functionName.replace(/^\S/, s => s.toUpperCase()) +
+          detail +
+          'GetResponse';
 
         if (!res_body) {
           responsInterfaceString = ``;
@@ -121,18 +129,21 @@ const pullConfig = async () => {
         // console.log('responsInterfaceString...', responsInterfaceString);
         // console.log('functionString...', functionString);
 
-        fs.appendFileSync('./api/types/index.ts', requestInterfaceString);
-        fs.appendFileSync('./api/types/index.ts', responsInterfaceString);
-        fs.appendFileSync('./api/index.ts', functionString);
+        fs.appendFileSync(`${baseDir}/types/index.ts`, requestInterfaceString);
+        fs.appendFileSync(`${baseDir}/types/index.ts`, responsInterfaceString);
+        fs.appendFileSync(`${baseDir}/index.ts`, functionString);
       }
 
       if (method == 'POST') {
+        let detail = path.indexOf('{') === -1 ? '' : 'Detail';
         let url =
           path.indexOf('{') === -1 ? path : path.slice(0, path.indexOf('{'));
         let functionName = getFunctionName(url);
 
         let requestInterfaceName =
-          functionName.replace(/^\S/, s => s.toUpperCase()) + 'Request';
+          functionName.replace(/^\S/, s => s.toUpperCase()) +
+          detail +
+          'PostRequest';
 
         let requestInterfaceString = '';
         if (!req_body_other) {
@@ -149,7 +160,9 @@ const pullConfig = async () => {
         //
         let responsInterfaceString = '';
         let responsInterfaceName =
-          functionName.replace(/^\S/, s => s.toUpperCase()) + 'Response';
+          functionName.replace(/^\S/, s => s.toUpperCase()) +
+          detail +
+          'PostResponse';
 
         if (!res_body) {
           responsInterfaceString = ``;
@@ -193,15 +206,15 @@ const pullConfig = async () => {
           functionNames.push(`${functionName}`);
         }
 
-        fs.appendFileSync('./api/types/index.ts', requestInterfaceString);
-        fs.appendFileSync('./api/types/index.ts', responsInterfaceString);
-        fs.appendFileSync('./api/index.ts', functionString);
+        fs.appendFileSync(`${baseDir}/types/index.ts`, requestInterfaceString);
+        fs.appendFileSync(`${baseDir}/types/index.ts`, responsInterfaceString);
+        fs.appendFileSync(`${baseDir}/index.ts`, functionString);
       }
     });
   });
 
   fs.appendFileSync(
-    './api/index.ts',
+    `${baseDir}/index.ts`,
     `export default {
     ${functionNames.join(',')}
   }`
@@ -236,17 +249,23 @@ const getInterfaceTree = (obj: any, interfaceName: string) => {
         // 基础类型加注释
         if (result.type === 'string') {
           fileds.push(`
-            // ${result.description}
+            /**
+             * ${result.description}
+             */  
             ${v}${required}: ${result.type};
           `);
         } else if (result.type === 'boolean') {
           fileds.push(`
-            // ${result.description}
+            /**
+             * ${result.description}
+             */ 
             ${v}${required}: ${result.type};
           `);
         } else if (result.type === 'number') {
           fileds.push(`
-            // ${result.description}
+            /**
+             * ${result.description}
+             */ 
             ${v}${required}: ${result.type};
           `);
         } else {
